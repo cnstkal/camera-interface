@@ -258,7 +258,9 @@ $('save').onclick=()=>{
  if(!image)return;
  const r=imageRect(),out=document.createElement('canvas');out.width=image.naturalWidth;out.height=image.naturalHeight;
  const o=out.getContext('2d'),sx=image.naturalWidth/r.w,sy=image.naturalHeight/r.h;
- o.drawImage(image,0,0);
+ o.imageSmoothingEnabled=true;
+ o.imageSmoothingQuality='high';
+ o.drawImage(image,0,0,image.naturalWidth,image.naturalHeight);
  o.strokeStyle=$('color').value;o.fillStyle=$('color').value;o.lineWidth=Math.max(1,+$('thickness').value*sx);const labelScale=(+$('labelSize').value/100)*(+$('size').value/100);o.font='700 '+Math.max(1,Math.round(11*labelScale*sx))+'px Pretendard,sans-serif';
  boxes.forEach(b=>{
   const x=(b.x-r.x)*sx,y=(b.y-r.y)*sy,w=b.w*sx,h=b.h*sy,len=Math.min(34*sx,Math.min(w,h)*.18);
@@ -277,9 +279,17 @@ $('save').onclick=()=>{
   const txt=(($('label').value||'#5389 // MANUAL').trim()).slice(0,32);
   o.font='700 '+Math.max(1,Math.round(11*labelScale*sx))+'px Pretendard,sans-serif';
   const tw=o.measureText(txt).width+12*labelScale*sx;
-  const labelH=22*labelScale*sx,labelX=x-o.lineWidth/2;
-  o.fillStyle=$('color').value;o.fillRect(labelX,y-labelH,tw+o.lineWidth/2,labelH);
-  o.fillStyle='#111';o.fillText(txt,labelX+6*labelScale*sx,y-7*labelScale*sx);
+  const labelH=22*labelScale*sx;
+  const labelW=tw+o.lineWidth/2;
+  // 사진 위쪽 끝에 붙은 박스는 레이블을 위로 그리면 PNG 밖으로 잘리므로 안쪽에 배치
+  const labelInside=y-labelH<0;
+  const labelY=labelInside?y:y-labelH;
+  const textY=labelInside?y+labelH-7*labelScale*sx:y-7*labelScale*sx;
+  const labelX=Math.max(0,Math.min(out.width-labelW,x-o.lineWidth/2));
+  o.fillStyle=$('color').value;
+  o.fillRect(labelX,labelY,labelW,labelH);
+  o.fillStyle='#111';
+  o.fillText(txt,labelX+6*labelScale*sx,textY);
   o.restore();
  });
  const isPng=/^data:image\/png/i.test(sourceUrl||'');
