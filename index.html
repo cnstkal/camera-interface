@@ -279,7 +279,7 @@ $('save').onclick=()=>{
  out.toBlob(async blob=>{
   if(!blob){alert('PNG 저장에 실패했어요. 다시 시도해주세요.');return}
   const file=new File([blob],`camera-interface.${ext}`,{type:mime});
-  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+  if(matchMedia('(pointer:coarse)').matches&&navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
    try{await navigator.share({files:[file],title:'camera-interface'});return}catch(e){if(e?.name==='AbortError')return}
   }
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`camera-interface.${ext}`;a.click();
