@@ -256,11 +256,15 @@ $('reset').onclick=async()=>{
 };
 $('save').onclick=()=>{
  if(!image)return;
- const r=imageRect(),out=document.createElement('canvas');out.width=image.naturalWidth;out.height=image.naturalHeight;
- const o=out.getContext('2d'),sx=image.naturalWidth/r.w,sy=image.naturalHeight/r.h;
+ const r=imageRect();
+ const exportScale=Math.min(2,8192/Math.max(image.naturalWidth,image.naturalHeight));
+ const out=document.createElement('canvas');
+ out.width=Math.round(image.naturalWidth*exportScale);
+ out.height=Math.round(image.naturalHeight*exportScale);
+ const o=out.getContext('2d'),sx=(image.naturalWidth*exportScale)/r.w,sy=(image.naturalHeight*exportScale)/r.h;
  o.imageSmoothingEnabled=true;
  o.imageSmoothingQuality='high';
- o.drawImage(image,0,0,image.naturalWidth,image.naturalHeight);
+ o.drawImage(image,0,0,out.width,out.height);
  o.strokeStyle=$('color').value;o.fillStyle=$('color').value;o.lineWidth=Math.max(1,+$('thickness').value*sx);const labelScale=(+$('labelSize').value/100)*(+$('size').value/100);o.font='700 '+Math.max(1,Math.round(11*labelScale*sx))+'px Pretendard,sans-serif';
  boxes.forEach(b=>{
   const x=(b.x-r.x)*sx,y=(b.y-r.y)*sy,w=b.w*sx,h=b.h*sy,len=Math.min(34*sx,Math.min(w,h)*.18);
