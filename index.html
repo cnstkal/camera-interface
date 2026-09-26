@@ -49,19 +49,20 @@ button{height:48px;border:1px solid #ddd;border-radius:13px;background:#fff;font
 <div class="grid">
 <label>레이블<input id="label" type="text" value="#5389 // MANUAL" maxlength="32"></label>
 <label>프레임 색상<input id="color" type="color" value="#ff3030"></label>
-<label>프레임 형태<select id="frameType"><option value="corners">테두리만</option><option value="box">사각형</option></select></label>
+<label>프레임 형태<select id="frameType"><option value="box" selected>사각형</option><option value="corners">테두리만</option></select></label>
 <div></div>
 <label>박스 크기 <span class="val" id="sizeVal">100%</span><input id="size" type="range" min="60" max="150" value="100"></label>
 <label>인식 개수 <span class="val" id="countVal">1</span><input id="count" type="range" min="1" max="12" value="1"></label>
 <label>레이블 크기 <span class="val" id="labelSizeVal">100%</span><input id="labelSize" type="range" min="20" max="120" value="100"></label>
 <label>선 두께 <span class="val" id="thicknessVal">3px</span><input id="thickness" type="range" min="1" max="8" value="3"></label>
+<label>회전 <span class="val" id="rotationVal">0°</span><input id="rotation" type="range" min="-180" max="180" value="0"></label>
 </div>
 <div class="actions"><button id="reset">초기화</button><button id="save" class="primary">PNG 저장</button></div>
 </section>
 </main>
 <script>
 const $=id=>document.getElementById(id),photo=$('photo'),canvas=$('overlay'),ctx=canvas.getContext('2d');
-let image=null,boxes=[],drag=null,sourceUrl=null,lastSize=100;
+let image=null,boxes=[],drag=null,sourceUrl=null,lastSize=100,rotation=0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const DB_NAME='camera-interface-db',STORE='state';
 function openDB(){
@@ -74,7 +75,7 @@ function openDB(){
 async function saveState(){
  try{
   const db=await openDB(),tx=db.transaction(STORE,'readwrite'),s=tx.objectStore(STORE);
-  const data={image:sourceUrl||null,boxes, count:+$('count').value,color:$('color').value,label:$('label').value,size:+$('size').value,thickness:+$('thickness').value,labelSize:+$('labelSize').value,frameType:$('frameType').value};
+  const data={image:sourceUrl||null,boxes, count:+$('count').value,color:$('color').value,label:$('label').value,size:+$('size').value,thickness:+$('thickness').value,labelSize:+$('labelSize').value,frameType:$('frameType').value,rotation:+$('rotation').value};
   s.put(data,'current');
  }catch(e){}
 }
@@ -85,7 +86,7 @@ async function loadState(){
    const s=req.result;if(!s)return;
    $('count').value=clamp(s.count||1,1,12);$('countVal').textContent=$('count').value;
    $('color').value=s.color||'#ff3030';$('label').value=s.label||'#5389 // MANUAL';
-   $('size').value=s.size||100;lastSize=+$('size').value;$('sizeVal').textContent=$('size').value+'%';$('frameType').value=s.frameType||'corners';$('thickness').value=s.thickness||3;$('thicknessVal').textContent=$('thickness').value+'px';$('labelSize').value=(s.labelSize&&s.labelSize<=20)?100:(s.labelSize||100);$('labelSizeVal').textContent=$('labelSize').value+'%';
+   $('size').value=s.size||100;lastSize=+$('size').value;$('sizeVal').textContent=$('size').value+'%';$('frameType').value=s.frameType||'box';$('thickness').value=s.thickness||3;$('rotation').value=clamp(s.rotation??0,-180,180);rotation=+$('rotation').value;$('rotationVal').textContent=rotation+'°';$('thicknessVal').textContent=$('thickness').value+'px';$('labelSize').value=(s.labelSize&&s.labelSize<=20)?100:(s.labelSize||100);$('labelSizeVal').textContent=$('labelSize').value+'%';
    if(s.image){
     const im=new Image();
     im.onload=()=>{image=im;photo.src=s.image;photo.hidden=false;fitCanvas();const base=makeBaseBox();boxes=(s.boxes||[]).map(b=>({...b}));if(!boxes.length)boxes=[base];syncBoxes(false);};
@@ -218,6 +219,7 @@ $('count').oninput=()=>{$('countVal').textContent=$('count').value;syncBoxes()};
 $('color').oninput=()=>{draw();saveState()};
 $('label').oninput=()=>{draw();saveState()};
 $('frameType').onchange=()=>{draw();saveState()};
+$('rotation').oninput=()=>{rotation=+$('rotation').value;$('rotationVal').textContent=rotation+'°';draw();saveState()};
 $('thickness').oninput=()=>{$('thicknessVal').textContent=$('thickness').value+'px';draw();saveState()};
 $('labelSize').oninput=()=>{$('labelSizeVal').textContent=$('labelSize').value+'%';draw();saveState()};
 $('size').oninput=()=>{
@@ -238,7 +240,7 @@ window.addEventListener('resize',()=>{if(image)fitCanvas()});
 window.addEventListener('beforeunload',()=>{try{saveState()}catch(e){}});
 $('reset').onclick=async()=>{
  image=null;boxes=[];drag=null;sourceUrl=null;lastSize=100;photo.hidden=true;photo.removeAttribute('src');$('file').value='';
- $('count').value=1;$('countVal').textContent='1';$('color').value='#ff3030';$('label').value='#5389 // MANUAL';$('size').value=100;$('sizeVal').textContent='100%';$('thickness').value=3;$('thicknessVal').textContent='3px';$('labelSize').value=100;$('labelSizeVal').textContent='100%';
+ $('count').value=1;$('countVal').textContent='1';$('color').value='#ff3030';$('label').value='#5389 // MANUAL';$('size').value=100;$('sizeVal').textContent='100%';$('thickness').value=3;$('thicknessVal').textContent='3px';$('labelSize').value=100;$('labelSizeVal').textContent='100%';$('rotation').value=0;rotation=0;$('rotationVal').textContent='0°';
  ctx.clearRect(0,0,canvas.width,canvas.height);
  try{const db=await openDB(),tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete('current')}catch(e){}
 };
@@ -250,6 +252,8 @@ $('save').onclick=()=>{
  o.strokeStyle=$('color').value;o.fillStyle=$('color').value;o.lineWidth=Math.max(1,+$('thickness').value*sx);const labelScale=(+$('labelSize').value/100)*(+$('size').value/100);o.font='700 '+Math.max(1,Math.round(11*labelScale*sx))+'px Pretendard,sans-serif';
  boxes.forEach(b=>{
   const x=(b.x-r.x)*sx,y=(b.y-r.y)*sy,w=b.w*sx,h=b.h*sy,len=Math.min(34*sx,Math.min(w,h)*.18);
+  o.save();
+  o.translate(x+w/2,y+h/2);o.rotate(rotation*Math.PI/180);o.translate(-(x+w/2),-(y+h/2));
   o.beginPath();
   if($('frameType').value==='box') {
     o.rect(x,y,w,h);
@@ -266,6 +270,7 @@ $('save').onclick=()=>{
   const labelH=22*labelScale*sx,labelX=x-o.lineWidth/2;
   o.fillStyle=$('color').value;o.fillRect(labelX,y-labelH,tw+o.lineWidth/2,labelH);
   o.fillStyle='#111';o.fillText(txt,labelX+6*labelScale*sx,y-7*labelScale*sx);
+  o.restore();
  });
  const isPng=/^data:image\/png/i.test(sourceUrl||'');
  const mime='image/png',ext='png',quality=undefined;
