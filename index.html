@@ -152,6 +152,10 @@ function draw(){
  ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=+$('thickness').value;const labelScale=(+$('labelSize').value/100)*(+$('size').value/100);ctx.font='700 '+(11*labelScale)+'px Pretendard,sans-serif';ctx.textBaseline='alphabetic';
  boxes.forEach(b=>{
   ctx.save();
+  const cx=b.x+b.w/2,cy=b.y+b.h/2;
+  ctx.translate(cx,cy);
+  ctx.rotate(rotation*Math.PI/180);
+  ctx.translate(-cx,-cy);
   const len=Math.min(34,Math.min(b.w,b.h)*.18);
   ctx.beginPath();
   if(frameType==='box') {
