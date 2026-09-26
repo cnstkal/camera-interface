@@ -254,6 +254,8 @@ $('save').onclick=()=>{
   const x=(b.x-r.x)*sx,y=(b.y-r.y)*sy,w=b.w*sx,h=b.h*sy,len=Math.min(34*sx,Math.min(w,h)*.18);
   o.save();
   o.translate(x+w/2,y+h/2);o.rotate(rotation*Math.PI/180);o.translate(-(x+w/2),-(y+h/2));
+  o.save();
+  o.translate(x+w/2,y+h/2);o.rotate(rotation*Math.PI/180);o.translate(-(x+w/2),-(y+h/2));
   o.beginPath();
   if($('frameType').value==='box') {
     o.rect(x,y,w,h);
