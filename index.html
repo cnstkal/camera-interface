@@ -97,10 +97,14 @@ async function loadState(){
 }
 function fitCanvas(){
  const r=$('view').getBoundingClientRect();
- const oldW=canvas.width||r.width,oldH=canvas.height||r.height;
- canvas.width=Math.round(r.width);canvas.height=Math.round(r.height);
- if(boxes.length&&oldW&&oldH&&(oldW!==canvas.width||oldH!==canvas.height)){
-  const sx=canvas.width/oldW,sy=canvas.height/oldH;
+ const oldW=canvas._cssW||r.width,oldH=canvas._cssH||r.height;
+ const newW=Math.max(1,Math.round(r.width)),newH=Math.max(1,Math.round(r.height));
+ canvas._cssW=newW;canvas._cssH=newH;
+ const dpr=Math.max(1,window.devicePixelRatio||1);
+ canvas.width=Math.round(newW*dpr);canvas.height=Math.round(newH*dpr);
+ canvas.style.width=newW+'px';canvas.style.height=newH+'px';
+ if(boxes.length&&oldW&&oldH&&(oldW!==newW||oldH!==newH)){
+  const sx=newW/oldW,sy=newH/oldH;
   boxes.forEach(b=>{b.x*=sx;b.y*=sy;b.w*=sx;b.h*=sy});
   constrainBoxes();
  }
@@ -147,7 +151,9 @@ function syncBoxes(save=true){
 }
 function draw(){
  if(!canvas.width)return;
- ctx.clearRect(0,0,canvas.width,canvas.height);
+ const dpr=Math.max(1,window.devicePixelRatio||1);
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.clearRect(0,0,canvas._cssW||canvas.width/dpr,canvas._cssH||canvas.height/dpr);
  const color=$('color').value,frameType=$('frameType').value;
  ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=+$('thickness').value;const labelScale=(+$('labelSize').value/100)*(+$('size').value/100);ctx.font='700 '+(11*labelScale)+'px Pretendard,sans-serif';ctx.textBaseline='alphabetic';
  boxes.forEach(b=>{
@@ -183,7 +189,7 @@ function resizeHit(x,y){
  for(let i=boxes.length-1;i>=0;i--){const b=boxes[i];if(Math.hypot(x-(b.x+b.w),y-(b.y+b.h))<24)return i}
  return -1;
 }
-function point(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}}
+function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 canvas.addEventListener('pointerdown',e=>{
  const p=point(e),ri=resizeHit(p.x,p.y);
  if(ri>=0){drag={i:ri,resize:true,dx:p.x-(boxes[ri].x+boxes[ri].w),dy:p.y-(boxes[ri].y+boxes[ri].h)};canvas.setPointerCapture(e.pointerId);return}
@@ -258,8 +264,6 @@ $('save').onclick=()=>{
   const x=(b.x-r.x)*sx,y=(b.y-r.y)*sy,w=b.w*sx,h=b.h*sy,len=Math.min(34*sx,Math.min(w,h)*.18);
   o.save();
   o.translate(x+w/2,y+h/2);o.rotate(rotation*Math.PI/180);o.translate(-(x+w/2),-(y+h/2));
-  o.save();
-  o.translate(x+w/2,y+h/2);o.rotate(rotation*Math.PI/180);o.translate(-(x+w/2),-(y+h/2));
   o.beginPath();
   if($('frameType').value==='box') {
     o.rect(x,y,w,h);
@@ -272,7 +276,7 @@ $('save').onclick=()=>{
   o.stroke();
   const txt=(($('label').value||'#5389 // MANUAL').trim()).slice(0,32);
   o.font='700 '+Math.max(1,Math.round(11*labelScale*sx))+'px Pretendard,sans-serif';
-  const tw=o.measureText(txt)+12*labelScale*sx;
+  const tw=o.measureText(txt).width+12*labelScale*sx;
   const labelH=22*labelScale*sx,labelX=x-o.lineWidth/2;
   o.fillStyle=$('color').value;o.fillRect(labelX,y-labelH,tw+o.lineWidth/2,labelH);
   o.fillStyle='#111';o.fillText(txt,labelX+6*labelScale*sx,y-7*labelScale*sx);
